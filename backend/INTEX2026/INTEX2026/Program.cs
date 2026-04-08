@@ -104,8 +104,8 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var db = services.GetRequiredService<HavynDbContext>();
     
-    // EnsureCreatedAsync creates all tables defined in HavynDbContext
-    await db.Database.EnsureCreatedAsync();
+    // Apply any pending migrations (creates tables if missing)
+    await db.Database.MigrateAsync();
     
     // Seed roles and CSV data
     await RoleSeedService.SeedAsync(services);
