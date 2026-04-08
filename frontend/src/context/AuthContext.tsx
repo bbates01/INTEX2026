@@ -1,6 +1,14 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
-import { apiFetch } from '../lib/api';
+import { useNavigate } from 'react-router-dom';
+import { apiFetch, setAuthErrorHandlers } from '../lib/api';
 import type { AuthUser } from '../types/auth';
 
 type AuthContextValue = {
@@ -16,41 +24,75 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [mfaRequired, setMfaRequired] = useState(false);
 
-  function toAuthUser(raw: any): AuthUser {
-    const sh = raw.safehouseId ?? raw.SafehouseId;
+  function toAuthUser(raw: unknown): AuthUser | null {
+    if (raw == null || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    if (r.isAuthenticated === false) return null;
+    const id = (r.id ?? r.Id) as string | undefined;
+    const email = (r.email ?? r.Email) as string | undefined;
+    if (!id && !email) return null;
+
+    const sh = r.safehouseId ?? r.SafehouseId;
     return {
-      id: raw.id ?? raw.Id,
-      email: raw.email ?? raw.Email,
-      displayName: raw.displayName ?? raw.DisplayName ?? '',
-      roles: raw.roles ?? raw.Roles ?? [],
-      privacyPolicyAccepted: Boolean(raw.privacyPolicyAccepted ?? raw.PrivacyPolicyAccepted),
-      cookieConsentAccepted: Boolean(raw.cookieConsentAccepted ?? raw.CookieConsentAccepted),
+      id: id ?? '',
+      email: email ?? '',
+      displayName: String(r.displayName ?? r.DisplayName ?? ''),
+      roles: (r.roles ?? r.Roles ?? []) as AuthUser['roles'],
+      privacyPolicyAccepted: Boolean(r.privacyPolicyAccepted ?? r.PrivacyPolicyAccepted),
+      cookieConsentAccepted: Boolean(r.cookieConsentAccepted ?? r.CookieConsentAccepted),
       safehouseId: sh === undefined || sh === null ? undefined : Number(sh),
     };
   }
 
-  async function refreshUser() {
+  const refreshUser = useCallback(async () => {
     try {
-      const data = await apiFetch<any>('/api/auth/me');
+      const data = await apiFetch<unknown>('/api/auth/me');
       setUser(toAuthUser(data));
       setMfaRequired(false);
     } catch {
       setUser(null);
     }
-  }
-
-  useEffect(() => {
-    refreshUser().finally(() => setLoading(false));
   }, []);
 
-  async function login(email: string, password: string) {
+  useEffect(() => {
+    setAuthErrorHandlers({
+      onUnauthorized: () => {
+        setUser(null);
+        setMfaRequired(false);
+        const path = window.location.pathname;
+        if (!path.startsWith('/login')) {
+          navigate('/login?session=expired', { replace: true });
+        }
+      },
+      onForbidden: () => {
+        // Optional: replace with toast when available
+        console.warn('Forbidden (403)');
+      },
+    });
+    return () => setAuthErrorHandlers({});
+  }, [navigate]);
+
+  useEffect(() => {
+    void refreshUser().finally(() => setLoading(false));
+  }, [refreshUser]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void refreshUser();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [refreshUser]);
+
+  const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
-      const data = await apiFetch<any>('/api/auth/login', {
+      const data = await apiFetch<Record<string, unknown>>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
@@ -63,12 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function validateMfa(code: string) {
+  const validateMfa = useCallback(async (code: string) => {
     setLoading(true);
     try {
-      const data = await apiFetch<any>('/api/auth/mfa/validate', {
+      const data = await apiFetch<unknown>('/api/auth/mfa/validate', {
         method: 'POST',
         body: JSON.stringify({ code }),
       });
@@ -77,17 +119,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function logout() {
+  const logout = useCallback(async () => {
     await apiFetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
     setMfaRequired(false);
-  }
+  }, []);
 
   const value = useMemo(
-    () => ({ user, loading, mfaRequired, login, validateMfa, logout, refreshUser }),
-    [user, loading, mfaRequired],
+    () => ({
+      user,
+      loading,
+      mfaRequired,
+      login,
+      validateMfa,
+      logout,
+      refreshUser,
+    }),
+    [user, loading, mfaRequired, login, validateMfa, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

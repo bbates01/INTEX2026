@@ -1,3 +1,4 @@
+using INTEX2026.Authorization;
 using INTEX2026.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ namespace INTEX2026.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "ExecutiveAdmin,RegionalManager,SocialWorker")]
+[Authorize(Policy = AuthPolicies.RequireStaff)]
 public class MlController : ControllerBase
 {
     private readonly HavynDbContext _context;

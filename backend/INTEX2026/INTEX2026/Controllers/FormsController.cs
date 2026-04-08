@@ -1,3 +1,4 @@
+using INTEX2026.Authorization;
 using INTEX2026.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +9,7 @@ namespace INTEX2026.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "RequireStaff")]
+[Authorize(Policy = AuthPolicies.RequireStaff)]
 public class FormsController : ControllerBase
 {
     private readonly HavynDbContext _context;

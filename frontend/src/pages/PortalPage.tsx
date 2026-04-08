@@ -1,5 +1,4 @@
 import { Fragment } from 'react';
-import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AdminDashboard } from './AdminDashboard';
 import { ManagerDashboard } from './ManagerDashboard';
@@ -11,7 +10,7 @@ import { CookieBanner } from '../components/CookieBanner';
 export function PortalPage() {
   const { user, logout, refreshUser } = useAuth();
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return null;
 
   const needsPrivacy = user.roles[0] !== 'Donor' && !user.privacyPolicyAccepted;
   if (needsPrivacy) return <FirstViewPage />;

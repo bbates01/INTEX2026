@@ -151,7 +151,7 @@ export function ManagerDashboard() {
             <div className="row g-2">
               <div className="col-md-2"><input className="form-control" placeholder="Name" value={acctName} onChange={(e) => setAcctName(e.target.value)} /></div>
               <div className="col-md-2"><input className="form-control" placeholder="Email" value={acctEmail} onChange={(e) => setAcctEmail(e.target.value)} /></div>
-              <div className="col-md-2"><input className="form-control" type="password" placeholder="Password (12+ chars)" value={acctPassword} onChange={(e) => setAcctPassword(e.target.value)} /></div>
+              <div className="col-md-2"><input className="form-control" type="password" placeholder="Password (14+ chars)" value={acctPassword} onChange={(e) => setAcctPassword(e.target.value)} /></div>
               <div className="col-md-3">
                 <select className="form-control" value={selectedWorkerCode} onChange={(e) => setSelectedWorkerCode(e.target.value)}>
                   <option value="">-- Select Social Worker --</option>

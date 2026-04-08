@@ -1,3 +1,4 @@
+using INTEX2026.Authorization;
 using INTEX2026.Contracts;
 using INTEX2026.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -113,22 +114,41 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
+        if (!(User?.Identity?.IsAuthenticated ?? false))
+        {
+            return Ok(new
+            {
+                isAuthenticated = false,
+                userName = (string?)null,
+                email = (string?)null,
+                roles = Array.Empty<string>()
+            });
+        }
+
         var user = await _userManager.GetUserAsync(User);
         if (user is null)
         {
-            return Unauthorized();
+            return Ok(new
+            {
+                isAuthenticated = false,
+                userName = (string?)null,
+                email = (string?)null,
+                roles = Array.Empty<string>()
+            });
         }
 
         var roles = await _userManager.GetRolesAsync(user);
         return Ok(new
         {
+            isAuthenticated = true,
+            userName = user.UserName,
+            email = user.Email,
             user.Id,
             user.DisplayName,
-            user.Email,
             Roles = roles,
             user.PrivacyPolicyAccepted,
             user.CookieConsentAccepted,
@@ -136,7 +156,7 @@ public class AuthController : ControllerBase
         });
     }
 
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     [HttpPost("create-account")]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request)
     {
@@ -195,7 +215,7 @@ public class AuthController : ControllerBase
         return Ok(new { message = $"{request.Role} account created." });
     }
 
-    [Authorize(Roles = "SocialWorker")]
+    [Authorize(Policy = AuthPolicies.SocialWorkerOnly)]
     [HttpPost("link-worker")]
     public async Task<IActionResult> LinkWorker([FromBody] LinkWorkerRequest request)
     {
@@ -293,7 +313,14 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize]
+    [HttpGet("claims")]
+    public IActionResult Claims()
+    {
+        return Ok(User.Claims.Select(c => new { c.Type, c.Value }));
+    }
+
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     [HttpGet("available-workers")]
     public async Task<IActionResult> GetAvailableWorkers()
     {
