@@ -1,3 +1,4 @@
+using INTEX2026.Authorization;
 using INTEX2026.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -21,7 +22,7 @@ public class DonorsController : ControllerBase
     }
 
     [HttpGet("supporters")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> GetSupporters([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         var query = _context.Supporters.AsQueryable();
@@ -31,7 +32,7 @@ public class DonorsController : ControllerBase
     }
 
     [HttpPost("supporters")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> CreateSupporter([FromBody] Supporter supporter)
     {
         _context.Supporters.Add(supporter);
@@ -40,7 +41,7 @@ public class DonorsController : ControllerBase
     }
 
     [HttpPut("supporters/{supporterId:int}")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> UpdateSupporter(int supporterId, [FromBody] Supporter request)
     {
         var supporter = await _context.Supporters.FirstOrDefaultAsync(s => s.SupporterId == supporterId);
@@ -63,7 +64,7 @@ public class DonorsController : ControllerBase
     }
 
     [HttpGet("donations")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager,Donor")]
+    [Authorize(Policy = AuthPolicies.StaffOrDonor)]
     public async Task<IActionResult> GetDonations([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         var query = _context.Donations.AsQueryable();
@@ -95,7 +96,7 @@ public class DonorsController : ControllerBase
     }
 
     [HttpPost("donations")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager,Donor")]
+    [Authorize(Policy = AuthPolicies.StaffOrDonor)]
     public async Task<IActionResult> CreateDonation([FromBody] Donation donation)
     {
         if (User.IsInRole("Donor"))
@@ -133,7 +134,7 @@ public class DonorsController : ControllerBase
     }
 
     [HttpPost("donations/{donationId:int}/allocations")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> AddAllocation(int donationId, [FromBody] DonationAllocation allocation)
     {
         allocation.DonationId = donationId;
@@ -143,7 +144,7 @@ public class DonorsController : ControllerBase
     }
 
     [HttpPost("donations/{donationId:int}/items")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> AddInKindItem(int donationId, [FromBody] InKindDonationItem item)
     {
         item.DonationId = donationId;
@@ -153,7 +154,7 @@ public class DonorsController : ControllerBase
     }
 
     [HttpPut("donations/{donationId:int}/recurring")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager,Donor")]
+    [Authorize(Policy = AuthPolicies.StaffOrDonor)]
     public async Task<IActionResult> UpdateRecurring(int donationId, [FromBody] RecurringUpdateRequest request)
     {
         var donation = await _context.Donations.FirstOrDefaultAsync(d => d.DonationId == donationId);

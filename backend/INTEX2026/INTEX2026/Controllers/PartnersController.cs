@@ -1,3 +1,4 @@
+using INTEX2026.Authorization;
 using INTEX2026.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> GetPartners([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         var total = await _context.Partners.CountAsync();
@@ -27,7 +28,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "ExecutiveAdmin")]
+    [Authorize(Policy = AuthPolicies.ExecutiveAdminOnly)]
     public async Task<IActionResult> CreatePartner([FromBody] Partner partner)
     {
         _context.Partners.Add(partner);
@@ -36,7 +37,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpPut("{partnerId:int}")]
-    [Authorize(Roles = "ExecutiveAdmin")]
+    [Authorize(Policy = AuthPolicies.ExecutiveAdminOnly)]
     public async Task<IActionResult> UpdatePartner(int partnerId, [FromBody] Partner request)
     {
         var partner = await _context.Partners.FirstOrDefaultAsync(p => p.PartnerId == partnerId);
@@ -61,7 +62,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpGet("{partnerId:int}/assignments")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> GetAssignments(int partnerId)
     {
         var assignments = await _context.PartnerAssignments.Where(a => a.PartnerId == partnerId).ToListAsync();
@@ -69,7 +70,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpPost("{partnerId:int}/assignments")]
-    [Authorize(Roles = "ExecutiveAdmin")]
+    [Authorize(Policy = AuthPolicies.ExecutiveAdminOnly)]
     public async Task<IActionResult> AddAssignment(int partnerId, [FromBody] PartnerAssignment assignment)
     {
         assignment.PartnerId = partnerId;

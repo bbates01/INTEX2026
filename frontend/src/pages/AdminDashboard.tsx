@@ -154,7 +154,7 @@ export function AdminDashboard() {
             <div className="row g-2">
               <div className="col-md-3"><input className="form-control" placeholder="Display Name" value={acctName} onChange={(e) => setAcctName(e.target.value)} /></div>
               <div className="col-md-3"><input className="form-control" placeholder="Email" value={acctEmail} onChange={(e) => setAcctEmail(e.target.value)} /></div>
-              <div className="col-md-2"><input className="form-control" type="password" placeholder="Password (12+ chars)" value={acctPassword} onChange={(e) => setAcctPassword(e.target.value)} /></div>
+              <div className="col-md-2"><input className="form-control" type="password" placeholder="Password (14+ chars)" value={acctPassword} onChange={(e) => setAcctPassword(e.target.value)} /></div>
               <div className="col-md-2"><select className="form-select" value={acctRole} onChange={(e) => setAcctRole(e.target.value)}><option>ExecutiveAdmin</option><option>RegionalManager</option><option>SocialWorker</option></select></div>
               <div className="col-md-2"><button className="btn btn-primary w-100" onClick={createAccount}>Create</button></div>
             </div>

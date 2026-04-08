@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
 import { SiteNav } from '../components/SiteNav';
 
 export function LoginPage() {
   const { user, login, validateMfa, loading, mfaRequired } = useAuth();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('session') === 'expired';
   const [email, setEmail] = useState('admin@havyn.org');
   const [password, setPassword] = useState('TempPass!12345');
   const [error, setError] = useState('');
@@ -59,6 +61,11 @@ export function LoginPage() {
             <div className="card p-3">
               <h2 className="h4">Unified Login</h2>
               <p className="text-muted">All roles sign in on this page.</p>
+              {sessionExpired ? (
+                <div className="alert alert-warning py-2" role="status">
+                  Your session expired. Please sign in again.
+                </div>
+              ) : null}
               <label className="form-label">Email</label>
               <input className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} />
               <label className="form-label mt-2">Password</label>
@@ -80,7 +87,7 @@ export function LoginPage() {
               <input className="form-control" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
               <label className="form-label mt-2">Password</label>
               <input className="form-control" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              <small className="text-muted">Use 12+ chars, uppercase, lowercase, number, and symbol.</small>
+              <small className="text-muted">Use at least 14 characters (new accounts).</small>
               <div className="form-check mt-2">
                 <input id="acceptPrivacyPolicy" className="form-check-input" type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} />
                 <label htmlFor="acceptPrivacyPolicy" className="form-check-label">I agree to the <Link to="/privacy">Privacy Policy</Link>.</label>

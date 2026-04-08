@@ -1,0 +1,98 @@
+ROOTKIT IDENTITY PROJECT — AUTHENTICATION & AUTHORIZATION SUMMARY
+================================================================
+
+ARCHITECTURE OVERVIEW
+---------------------
+The app is a React (Vite) frontend talking to an ASP.NET Core API. Identity is server-side using ASP.NET Core Identity with the Identity API (MapIdentityApi). The browser is authenticated with HTTP cookies (not JWTs in Authorization headers). The SPA uses credentials: 'include' so those cookies are sent on cross-origin requests, paired with CORS that allows the configured frontend origin and credentials.
+
+
+AUTHENTICATION
+--------------
+
+Core mechanisms
+
+1) Identity API under /api/auth
+   Program.cs registers AddIdentityApiEndpoints<ApplicationUser>() and maps them with MapGroup("/api/auth").MapIdentityApi<ApplicationUser>(). That supplies the standard endpoints for register, login (with cookie options), 2FA management, etc.
+
+2) Cookie authentication
+   ConfigureApplicationCookie sets:
+   - HttpOnly cookies
+   - SameSite=Lax
+   - Secure=Always (HTTPS only)
+   - Sliding expiration, 7-day lifetime
+   The frontend login helper chooses session vs persistent cookies via query flags (useSessionCookies vs useCookies) on POST /api/auth/login, matching the Identity API pattern in authAPI.ts.
+
+3) Custom AuthController (same /api/auth prefix)
+   Extends behavior beyond the generated Identity routes:
+   - GET /api/auth/me — Returns { isAuthenticated, userName, email, roles }. If not signed in, returns anonymous payload with empty roles. Roles come from ClaimTypes.Role on User.
+   - GET /api/auth/providers — Lists external providers (Google) when configured.
+   - GET /api/auth/external-login — Starts Google OAuth (Challenge with IdentityConstants.ExternalScheme for external, callback configured in Program.cs).
+   - GET /api/auth/external-callback — Handles return from Google: links or creates ApplicationUser, then signs in. New users are created by email; EmailConfirmed = true. External sign-in uses bypassTwoFactor: true for the external login path.
+   - POST /api/auth/logout — SignInManager.SignOutAsync() and JSON success.
+
+4) Google (optional)
+   If Authentication:Google:ClientId and ClientSecret are set, AddAuthentication().AddGoogle(...) runs with SignInScheme = IdentityConstants.ExternalScheme and callback path /signin-google. The custom external-login/callback actions build redirect URLs back to FrontendUrl (default http://localhost:3000) with optional returnPath or externalError on login failures.
+
+5) Password rules
+   IdentityOptions relax most complexity rules but require length 14 and 1 unique character (Program.cs).
+
+6) Data store
+   Identity uses AuthIdentityDbContext with SQLite (RootkitIdentity.sqlite). A separate RootbeerDbContext holds catalog data (RootkitAuth.sqlite).
+
+7) Startup seeding (AuthIdentityGenerator)
+   Ensures roles Admin and Customer exist. Ensures a default admin user (email/password from config or admin@rootkit.local / Rootkit2026!Admin) and assigns Admin. Only that seeded account is given a role at startup.
+
+   Note — Customer role and new registrants (unfinished): The Customer role is created in the database but nothing in this project assigns it—or any role—to users who sign up via registration. New self-service registrants end up with no role at all (not Customer, not Admin). If you are reading the code and wondering whether that is a bug or intentional, the current behavior is simply “no role on register”; wiring Customer (or another default) on sign-up is left unfinished unless you add it.
+
+
+Frontend session model
+
+- AuthProvider loads GET /api/auth/me on mount and exposes authSession, isAuthenticated, isLoading, refreshAuthState.
+- AuthSession mirrors the API: isAuthenticated, userName, email, roles[].
+- Login / register / MFA / logout call the API with credentials: 'include' so cookies flow through the Vite proxy (/api -> https://localhost:5000 in vite.config.ts).
+- Authorization in the UI is not enforced by React Router — routes like /admin/rootbeers are not wrapped in a route guard; the app relies on API 401/403 for real protection and uses roles only for navigation and messaging (e.g. Header, AdminRootbeerPage).
+
+- Session expiry mid-use: The app does not handle this gracefully—it does not refresh auth in the background, so after the cookie expires the UI can still look signed-in until a full page reload, and failed protected calls surface generic API errors, not a dedicated session-expired message.
+
+
+MFA
+---
+Handled through the Identity API /api/auth/manage/2fa (used by ManageMFAPage and authAPI.ts): status, enable/disable TOTP, recovery codes. Login can send twoFactorCode or twoFactorRecoveryCode in the JSON body to POST /api/auth/login.
+
+
+AUTHORIZATION
+-------------
+
+Server (authoritative)
+
+- Policy AuthPolicies.ManageCatalog ("ManagingCatalog") is defined as RequireRole(AuthRoles.Admin) — only Admin satisfies it.
+
+- RootbeersController:
+  - GET /api/rootbeers and GET /api/rootbeers/containers — anonymous (no [Authorize]).
+  - GET /api/rootbeers/admin and POST /api/rootbeers — [Authorize(Policy = AuthPolicies.ManageCatalog)] — Admin only.
+
+So browsing the catalog is public; admin catalog APIs require an authenticated user whose claims include the Admin role.
+
+
+Client (UX only)
+
+- Header and AdminRootbeerPage check authSession.roles.includes('Admin') to show the Admin link and admin UI messaging. Non-admins still could open /admin/rootbeers in the URL, but getManagedRootbeers / createRootbeer would fail against the API without the right cookie/role.
+
+
+CROSS-CUTTING SECURITY
+--------------------
+- CORS: Single origin from FrontendUrl (default http://localhost:3000) with AllowCredentials() — required for cookie auth from the SPA.
+- UseSecurityHeaders: Adds a restrictive Content-Security-Policy (non-Swagger in dev).
+- HTTPS: UseHttpsRedirection; HSTS outside Development.
+
+
+MENTAL MODEL (SHORT)
+--------------------
+Concern                  | Mechanism
+-------------------------+--------------------------------------------------
+Who you are              | ASP.NET Core Identity + auth cookie; optional Google OAuth; MFA via Identity API
+What the SPA knows       | GET /api/auth/me exposes identity + role names for UI
+What APIs allow          | [Authorize(Policy = …)] on admin rootbeer actions; Admin role required for catalog management
+Public vs protected      | Catalog read endpoints public; admin write/list-all endpoints require Admin
+
+That split—cookies + Identity on the server, policy/role checks on controllers, soft checks in React—is the project's authentication and authorization story end to end.

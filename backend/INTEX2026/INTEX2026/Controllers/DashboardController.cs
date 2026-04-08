@@ -1,3 +1,4 @@
+using INTEX2026.Authorization;
 using INTEX2026.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -21,7 +22,7 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("admin")]
-    [Authorize(Roles = "ExecutiveAdmin")]
+    [Authorize(Policy = AuthPolicies.ExecutiveAdminOnly)]
     public async Task<IActionResult> Admin()
     {
         var residents = await _context.Residents.CountAsync(r => r.CaseStatus != "Closed");
@@ -32,7 +33,7 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("manager")]
-    [Authorize(Roles = "RegionalManager")]
+    [Authorize(Policy = AuthPolicies.RegionalManagerOnly)]
     public async Task<IActionResult> Manager()
     {
         var appUser = await _userManager.GetUserAsync(User);
@@ -54,7 +55,7 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("staff")]
-    [Authorize(Roles = "SocialWorker")]
+    [Authorize(Policy = AuthPolicies.SocialWorkerOnly)]
     public async Task<IActionResult> Staff()
     {
         var appUser = await _userManager.GetUserAsync(User);
@@ -83,7 +84,7 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("donor")]
-    [Authorize(Roles = "Donor")]
+    [Authorize(Policy = AuthPolicies.DonorOnly)]
     public async Task<IActionResult> Donor()
     {
         var appUser = await _userManager.GetUserAsync(User);

@@ -1,3 +1,4 @@
+using INTEX2026.Authorization;
 using INTEX2026.Contracts;
 using INTEX2026.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,7 @@ namespace INTEX2026.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "RequireStaff")]
+[Authorize(Policy = AuthPolicies.RequireStaff)]
 public class ResidentsController : ControllerBase
 {
     private readonly HavynDbContext _context;
@@ -134,7 +135,7 @@ public class ResidentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> CreateResident([FromBody] ResidentIntakeRequest request)
     {
         var appUser = await _userManager.GetUserAsync(User);
@@ -344,7 +345,7 @@ public class ResidentsController : ControllerBase
     }
 
     [HttpPost("{residentId:int}/close")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> CloseCase(int residentId)
     {
         var resident = await _context.Residents.FirstOrDefaultAsync(r => r.ResidentId == residentId);
@@ -360,7 +361,7 @@ public class ResidentsController : ControllerBase
     }
 
     [HttpPost("{residentId:int}/reopen")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> ReopenCase(int residentId)
     {
         var resident = await _context.Residents.FirstOrDefaultAsync(r => r.ResidentId == residentId);
@@ -376,7 +377,7 @@ public class ResidentsController : ControllerBase
     }
 
     [HttpPut("{residentId:int}/reintegration")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager")]
+    [Authorize(Policy = AuthPolicies.ExecutiveOrRegional)]
     public async Task<IActionResult> UpdateReintegration(int residentId, [FromBody] ReintegrationUpdateRequest request)
     {
         var resident = await _context.Residents.FirstOrDefaultAsync(r => r.ResidentId == residentId);

@@ -1,3 +1,4 @@
+using INTEX2026.Authorization;
 using INTEX2026.Contracts;
 using INTEX2026.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +23,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpGet("appointments")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager,SocialWorker")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
     public async Task<IActionResult> GetAppointments([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         var query = _context.Appointments.AsQueryable();
@@ -87,7 +88,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpPost("appointments")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager,SocialWorker")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
     public async Task<IActionResult> AddAppointment([FromBody] Appointment appointment)
     {
         if (appointment.ResidentId <= 0)
@@ -123,7 +124,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpPut("appointments/{appointmentId:int}")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager,SocialWorker")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
     public async Task<IActionResult> UpdateAppointment(int appointmentId, [FromBody] AppointmentUpdateRequest request)
     {
         var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
@@ -168,7 +169,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpDelete("appointments/{appointmentId:int}")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager,SocialWorker")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
     public async Task<IActionResult> DeleteAppointment(int appointmentId)
     {
         var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
@@ -197,7 +198,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpPost("appointments/{appointmentId:int}/complete")]
-    [Authorize(Roles = "ExecutiveAdmin,RegionalManager,SocialWorker")]
+    [Authorize(Policy = AuthPolicies.RequireStaff)]
     public async Task<IActionResult> SetAppointmentComplete(int appointmentId, [FromBody] CompletionUpdateRequest request)
     {
         var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
@@ -227,7 +228,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpGet("todos")]
-    [Authorize(Roles = "SocialWorker")]
+    [Authorize(Policy = AuthPolicies.SocialWorkerOnly)]
     public async Task<IActionResult> GetMyTodos()
     {
         var user = await _userManager.GetUserAsync(User);
@@ -245,7 +246,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpPost("todos")]
-    [Authorize(Roles = "SocialWorker")]
+    [Authorize(Policy = AuthPolicies.SocialWorkerOnly)]
     public async Task<IActionResult> AddTodo([FromBody] TodoCreateRequest request)
     {
         var user = await _userManager.GetUserAsync(User);
@@ -267,7 +268,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpPost("todos/{todoId:int}/toggle")]
-    [Authorize(Roles = "SocialWorker")]
+    [Authorize(Policy = AuthPolicies.SocialWorkerOnly)]
     public async Task<IActionResult> ToggleTodo(int todoId)
     {
         var user = await _userManager.GetUserAsync(User);
@@ -289,7 +290,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpDelete("todos/{todoId:int}")]
-    [Authorize(Roles = "SocialWorker")]
+    [Authorize(Policy = AuthPolicies.SocialWorkerOnly)]
     public async Task<IActionResult> DeleteTodo(int todoId)
     {
         var user = await _userManager.GetUserAsync(User);
@@ -310,7 +311,7 @@ public class WorkPlannerController : ControllerBase
     }
 
     [HttpDelete("todos/clear-completed")]
-    [Authorize(Roles = "SocialWorker")]
+    [Authorize(Policy = AuthPolicies.SocialWorkerOnly)]
     public async Task<IActionResult> ClearCompletedTodos()
     {
         var user = await _userManager.GetUserAsync(User);
