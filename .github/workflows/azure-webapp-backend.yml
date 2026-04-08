@@ -15,10 +15,10 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '9.x'
 
       - name: Build and publish
-        run: dotnet publish backend/INTEX2026/INTEX2026/INTEX2026.csproj -c Release -r --self-contained true -o ./publish
+        run: dotnet publish backend/INTEX2026/INTEX2026/INTEX2026.csproj -c Release -o ./publish
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
